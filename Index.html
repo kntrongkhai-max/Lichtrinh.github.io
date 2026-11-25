@@ -1,0 +1,1300 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lịch Hẹn Nhóm Đi Chơi - Chốt Kèo Siêu Tốc</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Be Vietnam Pro', sans-serif;
+            background-color: #f8fafc;
+            color: #0f172a;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        /* Thanh cuộn ngang/dọc mượt mà */
+        .table-container::-webkit-scrollbar {
+            height: 8px;
+            width: 8px;
+        }
+        .table-container::-webkit-scrollbar-track {
+            background: #f1f5f9;
+            border-radius: 9999px;
+        }
+        .table-container::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 9999px;
+        }
+        .table-container::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+
+        /* Cố định 2 cột đầu và hàng tiêu đề khi cuộn */
+        .sticky-col-1 {
+            position: sticky;
+            left: 0;
+            z-index: 20;
+            background-color: #ffffff;
+        }
+        .sticky-col-2 {
+            position: sticky;
+            left: 116px;
+            z-index: 20;
+            background-color: #ffffff;
+        }
+        thead .sticky-col-1, thead .sticky-col-2 {
+            background-color: #f1f5f9;
+            z-index: 35;
+        }
+        .sticky-shadow {
+            box-shadow: 4px 0 10px -4px rgba(15, 23, 42, 0.08);
+        }
+
+        /* Tô sáng hàng đạt 100% cả nhóm rảnh */
+        tr.full-team-row {
+            background-color: rgba(236, 253, 245, 0.72) !important;
+        }
+        tr.full-team-row .sticky-col-2 {
+            background-color: #ecfdf5 !important;
+        }
+
+        /* Hiệu ứng nút và popover */
+        .status-badge {
+            transition: transform 0.12s ease, box-shadow 0.15s ease, background-color 0.15s ease;
+        }
+        .status-badge:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 2px 6px -1px rgba(15, 23, 42, 0.08);
+        }
+        .status-badge:active {
+            transform: scale(0.96);
+        }
+
+        @keyframes popIn {
+            from { opacity: 0; transform: scale(0.96) translateY(-6px); }
+            to { opacity: 1; transform: scale(1) translateY(0); }
+        }
+        .animate-pop {
+            animation: popIn 0.18s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col justify-between p-2.5 sm:p-5 lg:p-7">
+
+    <!-- Khung Ứng Dụng Chính -->
+    <div class="max-w-[1480px] w-full mx-auto bg-white rounded-3xl shadow-sm border border-slate-200/80 overflow-hidden">
+        
+        <!-- 1. TOP NAVBAR & TIÊU ĐỀ -->
+        <header class="p-4 sm:p-6 bg-gradient-to-b from-slate-50/90 to-white border-b border-slate-100">
+            <div class="flex flex-col xl:flex-row xl:items-center xl:justify-between gap-4">
+                
+                <!-- Tiêu đề nhóm + Trạng thái đồng bộ -->
+                <div class="space-y-1.5">
+                    <div class="flex flex-wrap items-center gap-2.5">
+                        <div class="w-9 h-9 rounded-2xl bg-gradient-to-tr from-indigo-600 to-blue-500 text-white flex items-center justify-center shadow-sm shadow-indigo-500/20 shrink-0">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                        </div>
+                        <h1 id="groupTitle" contenteditable="true" spellcheck="false" title="Bấm vào để đổi tên nhóm"
+                            class="text-xl sm:text-2xl font-extrabold tracking-tight text-slate-900 outline-none focus:bg-indigo-50/70 focus:ring-2 focus:ring-indigo-400 rounded-xl px-2 py-0.5 -ml-1 transition cursor-text">
+                            Lịch Hẹn Nhóm Đi Chơi
+                        </h1>
+                        <span id="syncBadge" class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200/80">
+                            <span id="syncDot" class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                            <span id="syncText">Đang kết nối...</span>
+                        </span>
+                        <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-mono font-medium bg-slate-100 text-slate-600 border border-slate-200/80">
+                            Phòng: <strong id="roomCodeDisplay" class="text-slate-900">...</strong>
+                        </span>
+                    </div>
+                    <p class="text-xs sm:text-sm text-slate-500 pl-0.5">
+                        Điền tên vào cột trống <strong>"Nhập tên..."</strong> • Chạm vào từng buổi để báo rảnh/bận • Hệ thống tự động tìm giờ <strong>100% cả nhóm rảnh</strong>.
+                    </p>
+                </div>
+
+                <!-- Cụm Nút Điều Khiển Chính -->
+                <div class="flex flex-wrap items-center gap-2">
+                    <!-- Chuyển đổi Tuần / Tháng -->
+                    <div class="inline-flex rounded-2xl bg-slate-100/90 p-1 border border-slate-200/70">
+                        <button id="btnViewWeek" class="px-3.5 py-1.5 text-xs sm:text-sm font-semibold rounded-xl bg-white text-slate-900 shadow-xs transition">
+                            Theo tuần
+                        </button>
+                        <button id="btnViewMonth" class="px-3.5 py-1.5 text-xs sm:text-sm font-medium rounded-xl text-slate-600 hover:text-slate-900 transition">
+                            Toàn bộ tháng
+                        </button>
+                    </div>
+
+                    <button id="btnNewRoom" class="px-3.5 py-2 text-xs sm:text-sm font-semibold text-slate-700 bg-white hover:bg-slate-50 border border-slate-200 rounded-2xl shadow-2xs transition flex items-center gap-1.5" title="Tạo phòng lịch mới">
+                        <svg class="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+                        <span>Phòng mới</span>
+                    </button>
+
+                    <button id="btnJoinRoom" class="px-3.5 py-2 text-xs sm:text-sm font-semibold text-slate-700 bg-white hover:bg-slate-50 border border-slate-200 rounded-2xl shadow-2xs transition flex items-center gap-1.5" title="Mở phòng bằng mã">
+                        <svg class="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"/></svg>
+                        <span>Nhập mã</span>
+                    </button>
+
+                    <button id="btnShareCopy" class="px-4 py-2 text-xs sm:text-sm font-bold text-white bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-700 hover:to-blue-700 active:scale-[0.99] rounded-2xl shadow-sm shadow-indigo-500/25 transition flex items-center gap-2">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"/></svg>
+                        <span>Chia sẻ & Copy Link</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- 2. BẢNG VÀNG CHỐT KÈO (TỰ ĐỘNG TÌM NGÀY/BUỔI 100% RẢNH) -->
+            <div id="goldenSummaryCard" class="mt-5 rounded-2xl bg-gradient-to-r from-emerald-50/90 via-teal-50/70 to-amber-50/80 border border-emerald-200/80 p-4 sm:p-5 shadow-2xs transition-all">
+                <div class="flex flex-col md:flex-row md:items-center justify-between gap-2 pb-3 border-b border-emerald-200/50">
+                    <div class="flex items-center gap-2">
+                        <span class="text-lg">👑</span>
+                        <h2 class="text-sm sm:text-base font-extrabold text-slate-800 tracking-tight">
+                            Bảng Vàng Chốt Kèo — Tự Động Tìm Giờ Cả Nhóm Rảnh
+                        </h2>
+                    </div>
+                    <div id="activeTeamBadge" class="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-600 bg-white/90 px-3 py-1 rounded-full border border-slate-200/80 self-start md:self-auto">
+                        <span>👥 Sĩ số đang tính: <strong id="activeMemberCount" class="text-indigo-600">0</strong> thành viên</span>
+                    </div>
+                </div>
+
+                <!-- Nội dung kết quả tự động tính toán -->
+                <div id="bestSlotsDisplay" class="mt-3 text-xs sm:text-sm text-slate-700 leading-relaxed">
+                    Đang phân tích lịch rảnh của cả nhóm...
+                </div>
+            </div>
+
+            <!-- 3. THANH ĐIỀU HƯỚNG TUẦN & BỘ LỌC NHANH -->
+            <div class="mt-4 pt-3 flex flex-col md:flex-row items-center justify-between gap-3">
+                <!-- Điều hướng thời gian -->
+                <div class="flex items-center gap-2 w-full md:w-auto justify-between md:justify-start">
+                    <button id="btnPrevWeek" class="px-3.5 py-2 text-xs sm:text-sm font-semibold text-slate-700 bg-white border border-slate-200 hover:bg-slate-50 rounded-xl shadow-2xs transition">
+                        ‹ Tuần trước
+                    </button>
+                    <div class="flex items-center gap-2">
+                        <span id="weekRangeLabel" class="text-sm sm:text-base font-extrabold text-slate-800 px-1.5">
+                            Tuần ...
+                        </span>
+                        <button id="btnThisWeek" class="px-2.5 py-1 text-xs font-bold text-indigo-700 bg-indigo-50 hover:bg-indigo-100 rounded-lg transition">
+                            Tuần này
+                        </button>
+                    </div>
+                    <button id="btnNextWeek" class="px-3.5 py-2 text-xs sm:text-sm font-semibold text-slate-700 bg-white border border-slate-200 hover:bg-slate-50 rounded-xl shadow-2xs transition">
+                        Tuần sau ›
+                    </button>
+                </div>
+
+                <!-- Bộ lọc nhanh & Thêm người -->
+                <div class="flex flex-wrap items-center gap-2.5 w-full md:w-auto justify-end">
+                    <label class="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-slate-100/80 hover:bg-slate-200/60 border border-slate-200/70 cursor-pointer select-none transition">
+                        <input id="filterFullTeamOnly" type="checkbox" class="w-4 h-4 rounded text-emerald-600 focus:ring-emerald-500 border-slate-300">
+                        <span class="text-xs sm:text-sm font-semibold text-slate-700">Chỉ hiện buổi cả nhóm rảnh</span>
+                    </label>
+
+                    <button id="btnAddMember" class="px-3.5 py-2 text-xs sm:text-sm font-bold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200/80 rounded-xl transition flex items-center gap-1.5 shadow-2xs">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"/></svg>
+                        <span>+ Thêm người</span>
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <!-- 4. BẢNG LỊCH TƯƠNG TÁC CHÍNH -->
+        <div class="table-container overflow-x-auto relative max-h-[70vh]">
+            <table class="w-full border-collapse text-left min-w-[820px]">
+                <thead class="sticky top-0 z-30">
+                    <tr id="tableHeaderRow" class="bg-slate-100/95 backdrop-blur-xs border-b border-slate-200 text-slate-700 text-xs sm:text-sm font-bold">
+                        <th class="sticky-col-1 w-[116px] min-w-[116px] py-3.5 px-3 border-r border-slate-200/80 text-center">Ngày</th>
+                        <th class="sticky-col-2 sticky-shadow w-[112px] min-w-[112px] py-3.5 px-2 border-r border-slate-200 text-center">Buổi</th>
+                        <!-- Các cột thành viên được render bằng JS -->
+                    </tr>
+                </thead>
+                <tbody id="scheduleTableBody" class="divide-y divide-slate-200 text-xs sm:text-sm">
+                    <!-- Nội dung các ngày/buổi được render bằng JS -->
+                </tbody>
+            </table>
+        </div>
+
+        <!-- 5. CHÚ THÍCH MÀU SẮC & HƯỚNG DẪN -->
+        <div class="px-4 sm:px-6 py-3.5 bg-slate-50/90 border-t border-slate-100 flex flex-wrap items-center justify-between gap-3 text-xs text-slate-500">
+            <div class="flex flex-wrap items-center gap-2">
+                <span class="font-bold text-slate-600">Trạng thái:</span>
+                <span class="px-2.5 py-1 rounded-lg bg-emerald-100 text-emerald-800 font-semibold border border-emerald-200/70">🟢 Rảnh</span>
+                <span class="px-2.5 py-1 rounded-lg bg-sky-100 text-sky-800 font-semibold border border-sky-200/70">🔵 Mắc học</span>
+                <span class="px-2.5 py-1 rounded-lg bg-purple-100 text-purple-800 font-semibold border border-purple-200/70">🟣 Mắc đi chơi</span>
+                <span class="px-2.5 py-1 rounded-lg bg-amber-100 text-amber-800 font-semibold border border-amber-200/70">🟠 Về quê</span>
+                <span class="px-2.5 py-1 rounded-lg bg-rose-100 text-rose-800 font-semibold border border-rose-200/70">🔴 Bận việc</span>
+                <span class="px-2.5 py-1 rounded-lg bg-yellow-100 text-yellow-800 font-semibold border border-yellow-200/70">🟡 Lý do khác</span>
+            </div>
+            <div class="text-slate-400 font-medium">
+                Cột chưa nhập tên & chưa điền lịch sẽ không tính vào tổng sĩ số nhóm.
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="text-center text-xs text-slate-400 mt-5 pb-2">
+        Lịch Hẹn Nhóm Đi Chơi • Đồng bộ thời gian thực & Tự động chốt kèo 100% rảnh
+    </footer>
+
+    <!-- POPOVER / MODAL CHỌN TRẠNG THÁI Ô LỊCH -->
+    <div id="statusModalBackdrop" class="fixed inset-0 bg-slate-900/35 backdrop-blur-[2px] z-50 hidden flex items-center justify-center p-4">
+        <div id="statusModalCard" class="bg-white rounded-3xl shadow-2xl border border-slate-200/90 w-full max-w-md p-5 sm:p-6 animate-pop">
+            <div class="flex items-start justify-between pb-3.5 border-b border-slate-100">
+                <div>
+                    <span class="inline-block text-[11px] font-bold uppercase tracking-wider text-indigo-600 bg-indigo-50 px-2.5 py-0.5 rounded-md mb-1">Cập nhật lịch trình</span>
+                    <h3 id="modalTitle" class="font-extrabold text-slate-900 text-lg">Thành viên</h3>
+                    <p id="modalSubtitle" class="text-xs sm:text-sm text-slate-500 mt-0.5">Thứ 2 • Buổi Sáng</p>
+                </div>
+                <button id="btnCloseModal" class="p-2 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-xl transition">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M6 18L18 6M6 6l12 12"/></svg>
+                </button>
+            </div>
+
+            <!-- Danh sách 6 nút chọn nhanh theo bảng màu chuẩn -->
+            <div class="grid grid-cols-2 gap-2.5 mt-4">
+                <button data-status-type="free" data-status-label="Rảnh" class="quick-status-btn flex items-center justify-center gap-2 py-3 px-3 rounded-2xl font-bold text-sm bg-emerald-100/90 hover:bg-emerald-200/80 text-emerald-800 border border-emerald-200 transition">
+                    <span>🟢 Rảnh</span>
+                </button>
+                <button data-status-type="study" data-status-label="Mắc học" class="quick-status-btn flex items-center justify-center gap-2 py-3 px-3 rounded-2xl font-bold text-sm bg-sky-100/90 hover:bg-sky-200/80 text-sky-800 border border-sky-200 transition">
+                    <span>🔵 Mắc học</span>
+                </button>
+                <button data-status-type="hangout" data-status-label="Mắc đi chơi" class="quick-status-btn flex items-center justify-center gap-2 py-3 px-3 rounded-2xl font-bold text-sm bg-purple-100/90 hover:bg-purple-200/80 text-purple-800 border border-purple-200 transition">
+                    <span>🟣 Mắc đi chơi</span>
+                </button>
+                <button data-status-type="home" data-status-label="Về quê" class="quick-status-btn flex items-center justify-center gap-2 py-3 px-3 rounded-2xl font-bold text-sm bg-amber-100/90 hover:bg-amber-200/80 text-amber-800 border border-amber-200 transition">
+                    <span>🟠 Về quê</span>
+                </button>
+                <button data-status-type="busy" data-status-label="Bận việc" class="quick-status-btn flex items-center justify-center gap-2 py-3 px-3 rounded-2xl font-bold text-sm bg-rose-100/90 hover:bg-rose-200/80 text-rose-800 border border-rose-200 transition">
+                    <span>🔴 Bận việc</span>
+                </button>
+                <button data-status-type="empty" data-status-label="" class="quick-status-btn flex items-center justify-center gap-2 py-3 px-3 rounded-2xl font-semibold text-sm bg-slate-100 hover:bg-slate-200/80 text-slate-600 border border-slate-200 transition">
+                    <span>⚪ Xóa trạng thái</span>
+                </button>
+            </div>
+
+            <!-- Nhập lý do khác -->
+            <div class="mt-4 pt-3.5 border-t border-slate-100">
+                <label class="block text-xs font-bold text-slate-700 mb-1.5">🟡 Lý do khác (tự nhập ghi chú):</label>
+                <div class="flex gap-2">
+                    <input id="customReasonInput" type="text" maxlength="26" placeholder="VD: Đi làm thêm, Khám răng, Về trễ..."
+                        class="flex-1 px-3.5 py-2.5 text-sm border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-amber-400 bg-yellow-50/30">
+                    <button id="btnSaveCustomReason" class="px-4 py-2.5 bg-slate-900 hover:bg-slate-800 text-white font-bold text-sm rounded-xl transition shrink-0">
+                        Lưu
+                    </button>
+                </div>
+            </div>
+
+            <!-- Tùy chọn áp dụng cả ngày -->
+            <div class="mt-4 pt-3.5 border-t border-slate-100 bg-slate-50/80 -mx-5 -mb-5 sm:-mx-6 sm:-mb-6 px-5 py-3.5 sm:px-6 rounded-b-3xl">
+                <label class="inline-flex items-center gap-2.5 cursor-pointer select-none">
+                    <input id="applyAllDayCheckbox" type="checkbox" class="w-4 h-4 rounded text-indigo-600 focus:ring-indigo-500 border-slate-300">
+                    <span class="text-xs sm:text-sm font-semibold text-slate-700">Áp dụng cho <strong class="text-indigo-600">cả ngày</strong> (Sáng, Chiều, Tối)</span>
+                </label>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL XÁC NHẬN XÓA THÀNH VIÊN -->
+    <div id="confirmDeleteModal" class="fixed inset-0 bg-slate-900/35 backdrop-blur-[2px] z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-3xl shadow-2xl border border-slate-200 w-full max-w-sm p-5 animate-pop">
+            <h3 class="font-extrabold text-slate-900 text-base">Xóa cột thành viên?</h3>
+            <p id="confirmDeleteText" class="text-xs sm:text-sm text-slate-600 mt-1.5 leading-relaxed">
+                Bạn có chắc muốn xóa cột này khỏi bảng lịch không?
+            </p>
+            <div class="flex justify-end gap-2 mt-5">
+                <button id="btnCancelDelete" class="px-4 py-2 text-xs sm:text-sm font-semibold text-slate-600 hover:bg-slate-100 rounded-xl transition">Hủy</button>
+                <button id="btnConfirmDelete" class="px-4 py-2 text-xs sm:text-sm font-bold text-white bg-rose-600 hover:bg-rose-700 rounded-xl transition">Xóa cột</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL NHẬP MÃ PHÒNG -->
+    <div id="joinRoomModal" class="fixed inset-0 bg-slate-900/35 backdrop-blur-[2px] z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-3xl shadow-2xl border border-slate-200 w-full max-w-sm p-5 animate-pop">
+            <h3 class="font-extrabold text-slate-900 text-base">Tham gia lịch nhóm có sẵn</h3>
+            <p class="text-xs text-slate-500 mt-1">Dán mã phòng hoặc link phòng bạn bè gửi để cùng xem và chỉnh sửa trực tiếp.</p>
+            <input id="joinRoomInput" type="text" placeholder="Ví dụ: keo-88x9ab"
+                class="w-full mt-3 px-3.5 py-2.5 text-sm border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 font-mono">
+            <div class="flex justify-end gap-2 mt-4">
+                <button id="btnCancelJoin" class="px-4 py-2 text-xs sm:text-sm font-semibold text-slate-600 hover:bg-slate-100 rounded-xl transition">Hủy</button>
+                <button id="btnConfirmJoin" class="px-4 py-2 text-xs sm:text-sm font-bold text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl transition">Vào phòng</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- TOAST THÔNG BÁO -->
+    <div id="toastContainer" class="fixed bottom-5 right-5 z-50 flex flex-col gap-2 pointer-events-none"></div>
+
+    <!-- FIREBASE & APPLICATION LOGIC -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, setDoc, getDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // ==========================================
+        // 1. CẤU HÌNH & KHỞI TẠO TRẠNG THÁI
+        // ==========================================
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'lich-hen-nhom-pro';
+        let db = null;
+        let auth = null;
+        let currentUser = null;
+        let unsubscribeRoom = null;
+
+        // 8 cột mặc định để trống tên ("")
+        const DEFAULT_MEMBERS = ["", "", "", "", "", "", "", ""];
+
+        const SESSIONS = [
+            { id: 'morning', label: 'Sáng', icon: '☀️' },
+            { id: 'afternoon', label: 'Chiều', icon: '🌤️' },
+            { id: 'evening', label: 'Tối', icon: '🌙' }
+        ];
+
+        let state = {
+            roomId: '',
+            title: 'Lịch Hẹn Nhóm Đi Chơi',
+            members: [...DEFAULT_MEMBERS],
+            entries: {},
+            currentMonday: getMondayOfWeek(new Date()),
+            viewMode: 'week', // 'week' | 'month'
+            filterFullTeamOnly: false
+        };
+
+        let activeCell = null;
+        let pendingDeleteMemberIdx = null;
+
+        // ==========================================
+        // 2. HÀM TIỆN ÍCH NGÀY THÁNG & URL ROOM
+        // ==========================================
+        function getMondayOfWeek(date) {
+            const d = new Date(date);
+            d.setHours(0, 0, 0, 0);
+            const day = d.getDay();
+            const diff = d.getDate() - day + (day === 0 ? -6 : 1);
+            return new Date(d.setDate(diff));
+        }
+
+        function formatDateKey(date) {
+            const y = date.getFullYear();
+            const m = String(date.getMonth() + 1).padStart(2, '0');
+            const d = String(date.getDate()).padStart(2, '0');
+            return `${y}-${m}-${d}`;
+        }
+
+        function formatShortDate(date) {
+            const d = String(date.getDate()).padStart(2, '0');
+            const m = String(date.getMonth() + 1).padStart(2, '0');
+            return `${d}/${m}`;
+        }
+
+        function getDayNameVN(date) {
+            const day = date.getDay();
+            return day === 0 ? 'Chủ Nhật' : `Thứ ${day + 1}`;
+        }
+
+        function getDisplayedDates() {
+            if (state.viewMode === 'month') {
+                const ref = state.currentMonday;
+                const year = ref.getFullYear();
+                const month = ref.getMonth();
+                const daysInMonth = new Date(year, month + 1, 0).getDate();
+                const dates = [];
+                for (let day = 1; day <= daysInMonth; day++) {
+                    dates.push(new Date(year, month, day));
+                }
+                return dates;
+            }
+            const dates = [];
+            for (let i = 0; i < 7; i++) {
+                const d = new Date(state.currentMonday);
+                d.setDate(state.currentMonday.getDate() + i);
+                dates.push(d);
+            }
+            return dates;
+        }
+
+        function generateRoomId() {
+            const chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
+            let res = 'keo-';
+            for (let i = 0; i < 6; i++) {
+                res += chars.charAt(Math.floor(Math.random() * chars.length));
+            }
+            return res;
+        }
+
+        function getRoomIdFromUrl() {
+            const params = new URLSearchParams(window.location.search);
+            let r = params.get('room');
+            if (!r && window.location.hash.startsWith('#room=')) {
+                r = window.location.hash.replace('#room=', '');
+            }
+            return r ? r.trim() : null;
+        }
+
+        function setRoomIdToUrl(roomId) {
+            try {
+                const url = new URL(window.location.href);
+                url.searchParams.set('room', roomId);
+                window.history.replaceState({}, '', url.toString());
+            } catch (e) {
+                window.location.hash = `room=${roomId}`;
+            }
+            document.getElementById('roomCodeDisplay').textContent = roomId;
+        }
+
+        function showToast(message, type = 'success') {
+            const container = document.getElementById('toastContainer');
+            const toast = document.createElement('div');
+            const bgClass = type === 'success'
+                ? 'bg-slate-900 text-white'
+                : (type === 'error' ? 'bg-rose-600 text-white' : 'bg-indigo-600 text-white');
+            toast.className = `${bgClass} px-4 py-3 rounded-2xl shadow-xl text-xs sm:text-sm font-semibold flex items-center gap-2 animate-pop`;
+            toast.innerHTML = `<span>${message}</span>`;
+            container.appendChild(toast);
+            setTimeout(() => {
+                toast.style.opacity = '0';
+                toast.style.transform = 'translateY(8px)';
+                toast.style.transition = 'all 0.2s ease';
+                setTimeout(() => toast.remove(), 220);
+            }, 2800);
+        }
+
+        // ==========================================
+        // 3. KẾT NỐI FIREBASE REALTIME
+        // ==========================================
+        async function initFirebaseAndSync() {
+            let roomId = getRoomIdFromUrl();
+            if (!roomId) {
+                roomId = generateRoomId();
+                setRoomIdToUrl(roomId);
+            } else {
+                document.getElementById('roomCodeDisplay').textContent = roomId;
+            }
+            state.roomId = roomId;
+
+            renderAll();
+
+            try {
+                if (typeof __firebase_config === 'undefined') {
+                    updateSyncStatus('offline', 'Chế độ cục bộ');
+                    return;
+                }
+                const firebaseConfig = JSON.parse(__firebase_config);
+                const app = initializeApp(firebaseConfig);
+                auth = getAuth(app);
+                db = getFirestore(app);
+
+                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                    await signInWithCustomToken(auth, __initial_auth_token);
+                } else {
+                    await signInAnonymously(auth);
+                }
+
+                onAuthStateChanged(auth, (user) => {
+                    currentUser = user;
+                    if (user) {
+                        subscribeToRoom(state.roomId);
+                    }
+                });
+            } catch (err) {
+                console.error("Lỗi khởi tạo Firebase:", err);
+                updateSyncStatus('error', 'Lỗi đồng bộ');
+            }
+        }
+
+        function updateSyncStatus(status, text) {
+            const badge = document.getElementById('syncBadge');
+            const dot = document.getElementById('syncDot');
+            const label = document.getElementById('syncText');
+            label.textContent = text;
+
+            if (status === 'synced') {
+                badge.className = 'inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200/80';
+                dot.className = 'w-2 h-2 rounded-full bg-emerald-500 animate-pulse';
+            } else if (status === 'saving') {
+                badge.className = 'inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-indigo-50 text-indigo-700 border border-indigo-200/80';
+                dot.className = 'w-2 h-2 rounded-full bg-indigo-500 animate-ping';
+            } else {
+                badge.className = 'inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-amber-50 text-amber-700 border border-amber-200/80';
+                dot.className = 'w-2 h-2 rounded-full bg-amber-500';
+            }
+        }
+
+        function getRoomDocRef(roomId) {
+            return doc(db, 'artifacts', appId, 'public', 'data', 'schedules', roomId);
+        }
+
+        async function subscribeToRoom(roomId) {
+            if (!db || !currentUser) return;
+            if (unsubscribeRoom) unsubscribeRoom();
+
+            updateSyncStatus('saving', 'Đang tải dữ liệu...');
+            const docRef = getRoomDocRef(roomId);
+
+            try {
+                const snap = await getDoc(docRef);
+                if (!snap.exists()) {
+                    await saveRoomToFirestore(true);
+                }
+            } catch (e) {
+                console.error("Lỗi kiểm tra phòng:", e);
+            }
+
+            unsubscribeRoom = onSnapshot(docRef, (snapshot) => {
+                if (snapshot.exists()) {
+                    const data = snapshot.data();
+                    state.title = data.title || 'Lịch Hẹn Nhóm Đi Chơi';
+                    state.members = Array.isArray(data.members) && data.members.length > 0 ? data.members : [...DEFAULT_MEMBERS];
+                    state.entries = data.entries || {};
+
+                    const titleEl = document.getElementById('groupTitle');
+                    if (document.activeElement !== titleEl) {
+                        titleEl.textContent = state.title;
+                    }
+
+                    const activeEl = document.activeElement;
+                    const isEditingMemberName = activeEl && activeEl.classList.contains('member-name-input');
+                    renderWeekHeader();
+                    if (!isEditingMemberName) {
+                        renderTableHeaders();
+                    }
+                    renderTableAndSummary();
+                    updateSyncStatus('synced', 'Đã đồng bộ trực tuyến');
+                }
+            }, (error) => {
+                console.error("Lỗi lắng nghe realtime:", error);
+                updateSyncStatus('error', 'Mất kết nối đồng bộ');
+            });
+        }
+
+        async function saveRoomToFirestore(isInit = false) {
+            if (!db || !currentUser) return;
+            updateSyncStatus('saving', 'Đang lưu...');
+            try {
+                const docRef = getRoomDocRef(state.roomId);
+                await setDoc(docRef, {
+                    title: state.title,
+                    members: state.members,
+                    entries: state.entries,
+                    updatedAt: Date.now()
+                }, { merge: true });
+                updateSyncStatus('synced', 'Đã đồng bộ trực tuyến');
+            } catch (err) {
+                console.error("Lỗi lưu dữ liệu:", err);
+                updateSyncStatus('error', 'Lỗi khi lưu');
+                if (!isInit) showToast('Không thể lưu dữ liệu lên máy chủ!', 'error');
+            }
+        }
+
+        // ==========================================
+        // 4. LOGIC PHÂN TÍCH SĨ SỐ & TÌM GIỜ 100% RẢNH
+        // ==========================================
+        function getActiveMemberIndices() {
+            const activeIndices = [];
+            state.members.forEach((name, mIdx) => {
+                const hasName = name && name.trim() !== '';
+                const hasAnyEntry = Object.keys(state.entries).some(
+                    k => k.endsWith(`_${mIdx}`) && state.entries[k]?.type && state.entries[k].type !== 'empty'
+                );
+                if (hasName || hasAnyEntry) {
+                    activeIndices.push(mIdx);
+                }
+            });
+            return activeIndices;
+        }
+
+        function getMemberDisplayName(mIdx) {
+            const raw = state.members[mIdx];
+            return raw && raw.trim() !== '' ? raw.trim() : `Thành viên ${mIdx + 1}`;
+        }
+
+        function analyzeScheduleData() {
+            const displayedDates = getDisplayedDates();
+            const activeIndices = getActiveMemberIndices();
+            const totalActive = activeIndices.length;
+
+            const fullTeamSessionsMap = {}; // key: `${dateKey}_${sessionId}` -> true
+            const fullTeamSlots = [];
+            const fullDayDates = [];
+            const allScoredSlots = [];
+
+            displayedDates.forEach((dateObj) => {
+                const dateKey = formatDateKey(dateObj);
+                const shortDate = formatShortDate(dateObj);
+                const dayName = getDayNameVN(dateObj);
+                let dayFullSessionCount = 0;
+
+                SESSIONS.forEach((session) => {
+                    let freeCount = 0;
+                    const busyMembers = [];
+
+                    activeIndices.forEach((mIdx) => {
+                        const entry = state.entries[`${dateKey}_${session.id}_${mIdx}`];
+                        if (entry && entry.type === 'free') {
+                            freeCount++;
+                        } else {
+                            const reason = entry && entry.type && entry.type !== 'empty'
+                                ? (entry.label || 'Bận')
+                                : 'Chưa điền';
+                            busyMembers.push(`${getMemberDisplayName(mIdx)} (${reason})`);
+                        }
+                    });
+
+                    const isFullTeam = totalActive > 0 && freeCount === totalActive;
+                    if (isFullTeam) {
+                        fullTeamSessionsMap[`${dateKey}_${session.id}`] = true;
+                        dayFullSessionCount++;
+                        fullTeamSlots.push({
+                            dateKey,
+                            dayName,
+                            shortDate,
+                            sessionId: session.id,
+                            sessionLabel: session.label,
+                            freeCount,
+                            totalActive
+                        });
+                    }
+
+                    if (freeCount > 0) {
+                        allScoredSlots.push({
+                            dateKey,
+                            dayName,
+                            shortDate,
+                            sessionId: session.id,
+                            sessionLabel: session.label,
+                            freeCount,
+                            totalActive,
+                            busyMembers,
+                            isFullTeam
+                        });
+                    }
+                });
+
+                if (totalActive > 0 && dayFullSessionCount === 3) {
+                    fullDayDates.push({
+                        dateKey,
+                        dayName,
+                        shortDate,
+                        totalActive
+                    });
+                }
+            });
+
+            return {
+                activeIndices,
+                totalActive,
+                fullTeamSessionsMap,
+                fullTeamSlots,
+                fullDayDates,
+                allScoredSlots
+            };
+        }
+
+        function renderGoldenSummary(analysis) {
+            const { totalActive, fullTeamSlots, fullDayDates, allScoredSlots } = analysis;
+            document.getElementById('activeMemberCount').textContent = totalActive;
+
+            const displayEl = document.getElementById('bestSlotsDisplay');
+            const summaryCard = document.getElementById('goldenSummaryCard');
+
+            if (totalActive === 0) {
+                summaryCard.className = 'mt-5 rounded-2xl bg-slate-50 border border-slate-200/80 p-4 sm:p-5 transition-all';
+                displayEl.innerHTML = `
+                    <div class="flex items-center gap-2 text-slate-600">
+                        <span>👋</span>
+                        <span>Chưa có thành viên nào nhập tên hoặc điền lịch. Hãy bấm vào ô <strong>"Nhập tên..."</strong> trên tiêu đề cột và chọn trạng thái <strong>Rảnh</strong> để bắt đầu chốt kèo!</span>
+                    </div>
+                `;
+                return;
+            }
+
+            // TRƯỜNG HỢP 1: CÓ BUỔI ĐẠT 100% CẢ NHÓM CÙNG RẢNH
+            if (fullTeamSlots.length > 0) {
+                summaryCard.className = 'mt-5 rounded-2xl bg-gradient-to-r from-emerald-50 via-teal-50/80 to-emerald-50/70 border border-emerald-300/90 p-4 sm:p-5 shadow-xs transition-all';
+
+                let html = '';
+
+                // Nếu có ngày rảnh nguyên cả ngày (Sáng + Chiều + Tối đều 100%)
+                if (fullDayDates.length > 0) {
+                    html += `<div class="mb-2.5 flex flex-wrap items-center gap-2">
+                        <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-amber-400/25 text-amber-900 border border-amber-300 font-extrabold text-xs">
+                            🌟 RẢNH NGUYÊN NGÀY (100%):
+                        </span>
+                        ${fullDayDates.map(d => `
+                            <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-white text-emerald-800 border border-emerald-300 font-bold text-xs sm:text-sm shadow-2xs">
+                                🎊 ${d.dayName} (${d.shortDate}) — Rảnh nguyên ngày (${d.totalActive}/${d.totalActive})
+                            </span>
+                        `).join('')}
+                    </div>`;
+                }
+
+                // Danh sách các buổi đạt 100% Full Team
+                html += `<div class="flex flex-wrap items-center gap-2">
+                    <span class="text-xs sm:text-sm font-bold text-emerald-900 mr-1">🎉 Cả nhóm cùng rảnh:</span>
+                    ${fullTeamSlots.map(slot => `
+                        <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white hover:bg-emerald-50/50 text-slate-800 border border-emerald-300/90 shadow-2xs text-xs sm:text-sm font-semibold">
+                            <span>🎉 <strong>${slot.dayName} (${slot.shortDate})</strong> - Buổi ${slot.sessionLabel}</span>
+                            <span class="px-2 py-0.5 rounded-md bg-emerald-600 text-white text-[11px] font-extrabold tracking-wide">
+                                FULL TEAM ${slot.freeCount}/${slot.totalActive}
+                            </span>
+                        </span>
+                    `).join('')}
+                </div>`;
+
+                displayEl.innerHTML = html;
+                return;
+            }
+
+            // TRƯỜNG HỢP 2: CHƯA CÓ BUỔI NÀO ĐẠT 100% -> GỢI Ý TOP 3 BUỔI ĐÔNG NHẤT + AI ĐANG BẬN
+            summaryCard.className = 'mt-5 rounded-2xl bg-gradient-to-r from-amber-50/90 via-orange-50/60 to-amber-50/80 border border-amber-200/90 p-4 sm:p-5 transition-all';
+
+            if (allScoredSlots.length === 0) {
+                displayEl.innerHTML = `
+                    <div class="text-amber-900 font-medium">
+                        ⏳ Hiện chưa có thành viên nào đánh dấu <strong>"Rảnh"</strong> trong khoảng thời gian này. Hãy tiếp tục cập nhật lịch nhé!
+                    </div>
+                `;
+                return;
+            }
+
+            allScoredSlots.sort((a, b) => b.freeCount - a.freeCount);
+            const top3 = allScoredSlots.slice(0, 3);
+
+            displayEl.innerHTML = `
+                <div class="text-xs sm:text-sm font-semibold text-amber-900 mb-2">
+                    💡 Chưa có buổi nào đạt 100% cả nhóm rảnh. Dưới đây là <strong>Top khung giờ đông người rảnh nhất</strong> để nhóm thương lượng:
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-2.5">
+                    ${top3.map((slot, idx) => `
+                        <div class="bg-white/95 rounded-xl p-3 border border-amber-200/90 shadow-2xs flex flex-col justify-between gap-1.5">
+                            <div class="flex items-center justify-between gap-2">
+                                <span class="font-bold text-slate-800 text-xs sm:text-sm">
+                                    ${idx === 0 ? '🥇' : (idx === 1 ? '🥈' : '🥉')} ${slot.dayName} (${slot.shortDate}) - ${slot.sessionLabel}
+                                </span>
+                                <span class="px-2 py-0.5 rounded-lg bg-emerald-100 text-emerald-800 font-extrabold text-xs shrink-0">
+                                    ${slot.freeCount}/${slot.totalActive} rảnh
+                                </span>
+                            </div>
+                            <div class="text-[11px] sm:text-xs text-slate-500 leading-snug">
+                                <span class="font-semibold text-rose-600">Vắng/Chưa điền:</span> ${slot.busyMembers.join(', ')}
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+        }
+
+        // ==========================================
+        // 5. RENDER BẢNG LỊCH & TRẠNG THÁI MÀU PASTEL
+        // ==========================================
+        function getBadgeStyle(entry) {
+            if (!entry || !entry.type || entry.type === 'empty') {
+                return {
+                    classes: 'bg-slate-50/70 hover:bg-slate-100 text-slate-400 border border-dashed border-slate-200/90',
+                    text: '—'
+                };
+            }
+            const suffix = entry.allDay ? ' (cả ngày)' : '';
+            switch (entry.type) {
+                case 'free':
+                    return {
+                        classes: 'bg-emerald-100/95 hover:bg-emerald-200/80 text-emerald-800 border border-emerald-200/90 font-bold',
+                        text: `Rảnh${suffix}`
+                    };
+                case 'study':
+                    return {
+                        classes: 'bg-sky-100/95 hover:bg-sky-200/80 text-sky-800 border border-sky-200/90 font-semibold',
+                        text: `Mắc học${suffix}`
+                    };
+                case 'hangout':
+                    return {
+                        classes: 'bg-purple-100/95 hover:bg-purple-200/80 text-purple-800 border border-purple-200/90 font-semibold',
+                        text: `Mắc đi chơi${suffix}`
+                    };
+                case 'home':
+                    return {
+                        classes: 'bg-amber-100/95 hover:bg-amber-200/80 text-amber-800 border border-amber-200/90 font-semibold',
+                        text: `Về quê${suffix}`
+                    };
+                case 'busy':
+                    return {
+                        classes: 'bg-rose-100/95 hover:bg-rose-200/80 text-rose-800 border border-rose-200/90 font-semibold',
+                        text: `Bận việc${suffix}`
+                    };
+                case 'other':
+                default:
+                    return {
+                        classes: 'bg-yellow-100/95 hover:bg-yellow-200/80 text-yellow-900 border border-yellow-300/80 font-semibold',
+                        text: `${entry.label || 'Lý do khác'}${suffix}`
+                    };
+            }
+        }
+
+        function renderAll() {
+            renderWeekHeader();
+            renderTableHeaders();
+            renderTableAndSummary();
+        }
+
+        function renderWeekHeader() {
+            const dates = getDisplayedDates();
+            if (state.viewMode === 'month') {
+                const m = String(dates[0].getMonth() + 1).padStart(2, '0');
+                const y = dates[0].getFullYear();
+                document.getElementById('weekRangeLabel').textContent = `Tháng ${m}/${y}`;
+            } else {
+                const startStr = formatShortDate(dates[0]);
+                const endStr = formatShortDate(dates[6]);
+                const yearStr = dates[6].getFullYear();
+                document.getElementById('weekRangeLabel').textContent = `Tuần ${startStr} - ${endStr}/${yearStr}`;
+            }
+        }
+
+        function renderTableHeaders() {
+            const headerRow = document.getElementById('tableHeaderRow');
+            while (headerRow.children.length > 2) {
+                headerRow.removeChild(headerRow.lastChild);
+            }
+
+            state.members.forEach((memberName, idx) => {
+                const th = document.createElement('th');
+                th.className = 'py-2.5 px-2 min-w-[136px] text-center border-r border-slate-200/70 last:border-r-0 relative group';
+
+                const wrapper = document.createElement('div');
+                wrapper.className = 'relative flex items-center justify-center';
+
+                const input = document.createElement('input');
+                input.type = 'text';
+                input.maxLength = 22;
+                input.value = memberName || '';
+                input.placeholder = 'Nhập tên...';
+                input.title = `Bấm để nhập tên thành viên ${idx + 1}`;
+                input.className = 'member-name-input w-full max-w-[122px] text-center bg-transparent hover:bg-white/90 focus:bg-white text-slate-900 placeholder:text-slate-400 placeholder:font-normal font-extrabold text-xs sm:text-sm px-2 py-1.5 rounded-xl outline-none focus:ring-2 focus:ring-indigo-400 transition';
+
+                const commitName = () => {
+                    const trimmed = input.value.trim();
+                    input.value = trimmed;
+                    if (state.members[idx] !== trimmed) {
+                        state.members[idx] = trimmed;
+                        saveRoomToFirestore();
+                        renderTableAndSummary();
+                    }
+                };
+
+                input.addEventListener('blur', commitName);
+                input.addEventListener('keydown', (e) => {
+                    if (e.key === 'Enter') {
+                        e.preventDefault();
+                        input.blur();
+                    }
+                });
+
+                wrapper.appendChild(input);
+
+                if (state.members.length > 1) {
+                    const delBtn = document.createElement('button');
+                    delBtn.type = 'button';
+                    delBtn.title = 'Xóa cột thành viên này';
+                    delBtn.className = 'opacity-0 group-hover:opacity-100 focus:opacity-100 absolute -top-1.5 -right-0.5 w-4 h-4 rounded-full bg-rose-500 hover:bg-rose-600 text-white text-[11px] font-bold leading-none flex items-center justify-center shadow-xs transition';
+                    delBtn.innerHTML = '×';
+                    delBtn.addEventListener('click', () => promptDeleteMember(idx));
+                    wrapper.appendChild(delBtn);
+                }
+
+                th.appendChild(wrapper);
+                headerRow.appendChild(th);
+            });
+        }
+
+        function renderTableAndSummary() {
+            const analysis = analyzeScheduleData();
+            renderGoldenSummary(analysis);
+            renderTableBody(analysis.fullTeamSessionsMap);
+        }
+
+        function renderTableBody(fullTeamSessionsMap) {
+            const tbody = document.getElementById('scheduleTableBody');
+            tbody.innerHTML = '';
+
+            const displayedDates = getDisplayedDates();
+            const todayKey = formatDateKey(new Date());
+            let renderedRowCount = 0;
+
+            displayedDates.forEach((dateObj) => {
+                const dateKey = formatDateKey(dateObj);
+                const shortDate = formatShortDate(dateObj);
+                const dayName = getDayNameVN(dateObj);
+                const isToday = dateKey === todayKey;
+                const dayOfWeek = dateObj.getDay();
+                const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
+
+                // Nếu bật bộ lọc "Chỉ hiện buổi cả nhóm rảnh", lọc ra các buổi đạt 100% trong ngày
+                const visibleSessions = state.filterFullTeamOnly
+                    ? SESSIONS.filter(s => Boolean(fullTeamSessionsMap[`${dateKey}_${s.id}`]))
+                    : SESSIONS;
+
+                if (visibleSessions.length === 0) return;
+
+                visibleSessions.forEach((session, sIdx) => {
+                    renderedRowCount++;
+                    const isLastSessionOfDay = sIdx === visibleSessions.length - 1;
+                    const isFullTeam = Boolean(fullTeamSessionsMap[`${dateKey}_${session.id}`]);
+
+                    const tr = document.createElement('tr');
+                    tr.className = `transition-colors ${isFullTeam ? 'full-team-row' : (isWeekend ? 'bg-slate-50/40' : 'bg-white')} hover:bg-indigo-50/25 ${isLastSessionOfDay ? 'border-b-2 border-slate-200' : 'border-b border-slate-100'}`;
+
+                    // Cột 1: Ngày (rowSpan theo số buổi hiển thị của ngày đó)
+                    if (sIdx === 0) {
+                        const tdDay = document.createElement('td');
+                        tdDay.rowSpan = visibleSessions.length;
+                        tdDay.className = `sticky-col-1 py-3 px-2.5 border-r border-slate-200/80 text-center align-middle select-none ${isToday ? 'bg-indigo-50/70' : ''}`;
+                        tdDay.innerHTML = `
+                            <div class="font-extrabold text-slate-800 text-xs sm:text-sm ${isWeekend ? 'text-indigo-700' : ''}">${dayName}</div>
+                            <div class="text-xs font-medium text-slate-500 mt-0.5">(${shortDate})</div>
+                            ${isToday ? '<span class="inline-block mt-1 px-2 py-0.5 bg-indigo-600 text-white text-[10px] font-bold rounded-full shadow-2xs">Hôm nay</span>' : ''}
+                        `;
+                        tr.appendChild(tdDay);
+                    }
+
+                    // Cột 2: Buổi + Nhãn "✨ Cả nhóm rảnh" nếu đạt 100%
+                    const tdSession = document.createElement('td');
+                    tdSession.className = `sticky-col-2 sticky-shadow py-2.5 px-2 border-r border-slate-200 text-center align-middle select-none ${isToday && !isFullTeam ? 'bg-indigo-50/40' : ''}`;
+                    tdSession.innerHTML = `
+                        <div class="font-bold text-slate-700 text-xs sm:text-sm">${session.label}</div>
+                        ${isFullTeam ? '<div class="mt-1 inline-flex items-center justify-center px-1.5 py-0.5 rounded-md bg-emerald-600 text-white text-[10px] font-extrabold leading-tight shadow-2xs">✨ Cả nhóm rảnh</div>' : ''}
+                    `;
+                    tr.appendChild(tdSession);
+
+                    // Các cột thành viên
+                    state.members.forEach((memberName, mIdx) => {
+                        const tdCell = document.createElement('td');
+                        tdCell.className = 'p-1.5 border-r border-slate-100 last:border-r-0 text-center align-middle';
+
+                        const entryKey = `${dateKey}_${session.id}_${mIdx}`;
+                        const entry = state.entries[entryKey];
+                        const badgeInfo = getBadgeStyle(entry);
+                        const displayMemberName = getMemberDisplayName(mIdx);
+
+                        const btn = document.createElement('button');
+                        btn.type = 'button';
+                        btn.className = `status-badge w-full py-2 px-2.5 rounded-xl text-xs leading-snug truncate cursor-pointer ${badgeInfo.classes}`;
+                        btn.textContent = badgeInfo.text;
+                        btn.title = `${displayMemberName} • ${dayName} (${shortDate}) - ${session.label}: ${badgeInfo.text}`;
+
+                        btn.addEventListener('click', () => {
+                            openStatusModal({
+                                dateKey,
+                                dayName,
+                                shortDate,
+                                sessionId: session.id,
+                                sessionLabel: session.label,
+                                memberIdx: mIdx,
+                                memberName: displayMemberName
+                            });
+                        });
+
+                        tdCell.appendChild(btn);
+                        tr.appendChild(tdCell);
+                    });
+
+                    tbody.appendChild(tr);
+                });
+            });
+
+            // Nếu đang bật lọc "Chỉ hiện buổi cả nhóm rảnh" mà chưa có buổi nào đạt 100%
+            if (renderedRowCount === 0 && state.filterFullTeamOnly) {
+                const emptyTr = document.createElement('tr');
+                emptyTr.innerHTML = `
+                    <td colspan="${state.members.length + 2}" class="py-12 px-4 text-center text-slate-500">
+                        <div class="text-2xl mb-2">🔍</div>
+                        <div class="font-bold text-slate-700 text-sm">Chưa có buổi nào đạt 100% cả nhóm rảnh trong khoảng thời gian này</div>
+                        <div class="text-xs text-slate-400 mt-1">Hãy tắt bộ lọc <strong>"Chỉ hiện buổi cả nhóm rảnh"</strong> để xem toàn bộ lịch và điền thêm thông tin.</div>
+                    </td>
+                `;
+                tbody.appendChild(emptyTr);
+            }
+        }
+
+        // ==========================================
+        // 6. XỬ LÝ MODAL CHỌN TRẠNG THÁI & XÓA THÀNH VIÊN
+        // ==========================================
+        function openStatusModal(cellInfo) {
+            activeCell = cellInfo;
+            const modal = document.getElementById('statusModalBackdrop');
+            document.getElementById('modalTitle').textContent = cellInfo.memberName;
+            document.getElementById('modalSubtitle').textContent = `${cellInfo.dayName} (${cellInfo.shortDate}) • Buổi ${cellInfo.sessionLabel}`;
+
+            const currentEntry = state.entries[`${cellInfo.dateKey}_${cellInfo.sessionId}_${cellInfo.memberIdx}`];
+            const customInput = document.getElementById('customReasonInput');
+            customInput.value = (currentEntry && currentEntry.type === 'other') ? currentEntry.label : '';
+
+            document.getElementById('applyAllDayCheckbox').checked = Boolean(currentEntry && currentEntry.allDay);
+            modal.classList.remove('hidden');
+        }
+
+        function closeStatusModal() {
+            document.getElementById('statusModalBackdrop').classList.add('hidden');
+            activeCell = null;
+        }
+
+        function applyCellStatus(type, label) {
+            if (!activeCell) return;
+            const { dateKey, sessionId, memberIdx } = activeCell;
+            const applyAllDay = document.getElementById('applyAllDayCheckbox').checked;
+
+            if (applyAllDay) {
+                SESSIONS.forEach(s => {
+                    const key = `${dateKey}_${s.id}_${memberIdx}`;
+                    if (type === 'empty') {
+                        delete state.entries[key];
+                    } else {
+                        state.entries[key] = { type, label, allDay: true };
+                    }
+                });
+            } else {
+                const key = `${dateKey}_${sessionId}_${memberIdx}`;
+                if (type === 'empty') {
+                    delete state.entries[key];
+                } else {
+                    state.entries[key] = { type, label, allDay: false };
+                }
+
+                // Kiểm tra nếu cả 3 buổi trong ngày đều cùng 1 trạng thái -> gắn nhãn (cả ngày)
+                const dayKeys = SESSIONS.map(s => `${dateKey}_${s.id}_${memberIdx}`);
+                const dayEntries = dayKeys.map(k => state.entries[k]);
+                if (type !== 'empty' && dayEntries.every(e => e && e.type === type && e.label === label)) {
+                    dayKeys.forEach(k => {
+                        state.entries[k].allDay = true;
+                    });
+                } else {
+                    dayKeys.forEach(k => {
+                        if (state.entries[k]) {
+                            state.entries[k].allDay = false;
+                        }
+                    });
+                }
+            }
+
+            closeStatusModal();
+            renderTableAndSummary();
+            saveRoomToFirestore();
+        }
+
+        function promptDeleteMember(idx) {
+            if (state.members.length <= 1) {
+                showToast('Cần giữ lại ít nhất 1 cột thành viên!', 'error');
+                return;
+            }
+            pendingDeleteMemberIdx = idx;
+            const name = getMemberDisplayName(idx);
+            document.getElementById('confirmDeleteText').innerHTML = `Bạn có chắc muốn xóa cột <strong>"${name}"</strong> và toàn bộ lịch đã điền của cột này không?`;
+            document.getElementById('confirmDeleteModal').classList.remove('hidden');
+        }
+
+        function executeDeleteMember() {
+            if (pendingDeleteMemberIdx === null) return;
+            const removeIdx = pendingDeleteMemberIdx;
+            const oldName = getMemberDisplayName(removeIdx);
+            state.members.splice(removeIdx, 1);
+
+            const updatedEntries = {};
+            Object.keys(state.entries).forEach(key => {
+                const parts = key.split('_');
+                if (parts.length === 3) {
+                    const mIdx = parseInt(parts[2], 10);
+                    if (mIdx < removeIdx) {
+                        updatedEntries[key] = state.entries[key];
+                    } else if (mIdx > removeIdx) {
+                        updatedEntries[`${parts[0]}_${parts[1]}_${mIdx - 1}`] = state.entries[key];
+                    }
+                }
+            });
+            state.entries = updatedEntries;
+
+            pendingDeleteMemberIdx = null;
+            document.getElementById('confirmDeleteModal').classList.add('hidden');
+            renderAll();
+            saveRoomToFirestore();
+            showToast(`Đã xóa cột "${oldName}"`);
+        }
+
+        // ==========================================
+        // 7. SỰ KIỆN TƯƠNG TÁC NGƯỜI DÙNG
+        // ==========================================
+        const groupTitleEl = document.getElementById('groupTitle');
+        groupTitleEl.addEventListener('blur', () => {
+            const newTitle = groupTitleEl.textContent.trim() || 'Lịch Hẹn Nhóm Đi Chơi';
+            groupTitleEl.textContent = newTitle;
+            if (state.title !== newTitle) {
+                state.title = newTitle;
+                saveRoomToFirestore();
+            }
+        });
+        groupTitleEl.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                groupTitleEl.blur();
+            }
+        });
+
+        // Chuyển đổi chế độ xem Theo tuần / Toàn bộ tháng
+        const btnViewWeek = document.getElementById('btnViewWeek');
+        const btnViewMonth = document.getElementById('btnViewMonth');
+        btnViewWeek.addEventListener('click', () => {
+            state.viewMode = 'week';
+            btnViewWeek.className = 'px-3.5 py-1.5 text-xs sm:text-sm font-semibold rounded-xl bg-white text-slate-900 shadow-xs transition';
+            btnViewMonth.className = 'px-3.5 py-1.5 text-xs sm:text-sm font-medium rounded-xl text-slate-600 hover:text-slate-900 transition';
+            renderAll();
+        });
+        btnViewMonth.addEventListener('click', () => {
+            state.viewMode = 'month';
+            btnViewMonth.className = 'px-3.5 py-1.5 text-xs sm:text-sm font-semibold rounded-xl bg-white text-slate-900 shadow-xs transition';
+            btnViewWeek.className = 'px-3.5 py-1.5 text-xs sm:text-sm font-medium rounded-xl text-slate-600 hover:text-slate-900 transition';
+            renderAll();
+        });
+
+        // Điều hướng thời gian
+        document.getElementById('btnPrevWeek').addEventListener('click', () => {
+            if (state.viewMode === 'month') {
+                state.currentMonday = new Date(state.currentMonday.getFullYear(), state.currentMonday.getMonth() - 1, 1);
+            } else {
+                state.currentMonday.setDate(state.currentMonday.getDate() - 7);
+            }
+            renderAll();
+        });
+        document.getElementById('btnNextWeek').addEventListener('click', () => {
+            if (state.viewMode === 'month') {
+                state.currentMonday = new Date(state.currentMonday.getFullYear(), state.currentMonday.getMonth() + 1, 1);
+            } else {
+                state.currentMonday.setDate(state.currentMonday.getDate() + 7);
+            }
+            renderAll();
+        });
+        document.getElementById('btnThisWeek').addEventListener('click', () => {
+            state.currentMonday = getMondayOfWeek(new Date());
+            renderAll();
+        });
+
+        // Lọc "Chỉ hiện buổi cả nhóm rảnh"
+        document.getElementById('filterFullTeamOnly').addEventListener('change', (e) => {
+            state.filterFullTeamOnly = e.target.checked;
+            renderTableAndSummary();
+        });
+
+        // Thêm thành viên mới
+        document.getElementById('btnAddMember').addEventListener('click', () => {
+            if (state.members.length >= 20) {
+                showToast('Tối đa 20 thành viên trong 1 bảng!', 'error');
+                return;
+            }
+            state.members.push("");
+            renderAll();
+            saveRoomToFirestore();
+            showToast('Đã thêm cột thành viên mới');
+        });
+
+        // Modal chọn trạng thái
+        document.querySelectorAll('.quick-status-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const type = btn.getAttribute('data-status-type');
+                const label = btn.getAttribute('data-status-label');
+                applyCellStatus(type, label);
+            });
+        });
+
+        document.getElementById('btnSaveCustomReason').addEventListener('click', () => {
+            const val = document.getElementById('customReasonInput').value.trim();
+            if (!val) {
+                showToast('Vui lòng nhập lý do bận!', 'error');
+                return;
+            }
+            applyCellStatus('other', val);
+        });
+
+        document.getElementById('customReasonInput').addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                document.getElementById('btnSaveCustomReason').click();
+            }
+        });
+
+        document.getElementById('btnCloseModal').addEventListener('click', closeStatusModal);
+        document.getElementById('statusModalBackdrop').addEventListener('click', (e) => {
+            if (e.target === e.currentTarget) closeStatusModal();
+        });
+
+        // Modal xác nhận xóa thành viên
+        document.getElementById('btnCancelDelete').addEventListener('click', () => {
+            pendingDeleteMemberIdx = null;
+            document.getElementById('confirmDeleteModal').classList.add('hidden');
+        });
+        document.getElementById('btnConfirmDelete').addEventListener('click', executeDeleteMember);
+
+        // Chia sẻ & Copy Link
+        document.getElementById('btnShareCopy').addEventListener('click', () => {
+            setRoomIdToUrl(state.roomId);
+            saveRoomToFirestore();
+
+            const shareUrl = window.location.href;
+            const tempInput = document.createElement('input');
+            tempInput.value = shareUrl;
+            document.body.appendChild(tempInput);
+            tempInput.select();
+            try {
+                document.execCommand('copy');
+                showToast('✅ Đã copy link phòng! Gửi ngay cho cả nhóm để cùng chốt kèo.');
+            } catch (err) {
+                showToast(`Link phòng: ${shareUrl}`, 'info');
+            }
+            document.body.removeChild(tempInput);
+        });
+
+        // Tạo phòng mới
+        document.getElementById('btnNewRoom').addEventListener('click', () => {
+            const newId = generateRoomId();
+            state.roomId = newId;
+            state.title = 'Lịch Hẹn Nhóm Đi Chơi';
+            state.members = [...DEFAULT_MEMBERS];
+            state.entries = {};
+            state.filterFullTeamOnly = false;
+            document.getElementById('filterFullTeamOnly').checked = false;
+            document.getElementById('groupTitle').textContent = state.title;
+            setRoomIdToUrl(newId);
+            renderAll();
+            if (db && currentUser) {
+                saveRoomToFirestore(true).then(() => subscribeToRoom(newId));
+            }
+            showToast(`Đã tạo phòng mới (${newId})`);
+        });
+
+        // Nhập mã phòng có sẵn
+        const joinModal = document.getElementById('joinRoomModal');
+        document.getElementById('btnJoinRoom').addEventListener('click', () => {
+            document.getElementById('joinRoomInput').value = '';
+            joinModal.classList.remove('hidden');
+            document.getElementById('joinRoomInput').focus();
+        });
+        document.getElementById('btnCancelJoin').addEventListener('click', () => {
+            joinModal.classList.add('hidden');
+        });
+        document.getElementById('btnConfirmJoin').addEventListener('click', () => {
+            let inputId = document.getElementById('joinRoomInput').value.trim();
+            if (!inputId) return;
+            if (inputId.includes('room=')) {
+                const match = inputId.match(/room=([a-zA-Z0-9-_]+)/);
+                if (match) inputId = match[1];
+            }
+            joinModal.classList.add('hidden');
+            state.roomId = inputId;
+            setRoomIdToUrl(inputId);
+            if (db && currentUser) {
+                subscribeToRoom(inputId);
+            }
+            showToast(`Đang mở phòng: ${inputId}`);
+        });
+
+        // Khởi chạy
+        initFirebaseAndSync();
+    </script>
+</body>
+</html>
